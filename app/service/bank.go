@@ -21,19 +21,19 @@ func (s *BankService) TransferFunds(ctx context.Context, req *pb.TransferRequest
 	defer cancel()
 
 	if req.FromAccountNumber == req.ToAccountNumber {
-		return nil, status.Errorf(codes.InvalidArgument, "cannot transfer same srcAccount")
+		return nil, status.Errorf(codes.InvalidArgument, "cannot transfer same account")
 	}
 
 	srcAccount := models.Accounts{}
 	sourceAccount, errSourceAccount := srcAccount.GetUserByAccountNumber(s.DB, req.FromAccountNumber)
 	if errSourceAccount != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "source srcAccount not found")
+		return nil, status.Errorf(codes.InvalidArgument, "source account not found")
 	}
 
 	bnfAccount := models.Accounts{}
 	beneficiaryAccount, errBeneficiaryAccount := bnfAccount.GetUserByAccountNumber(s.DB, req.ToAccountNumber)
 	if errBeneficiaryAccount != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "beneficiary srcAccount not found")
+		return nil, status.Errorf(codes.InvalidArgument, "beneficiary account not found")
 	}
 
 	blockedBalance := models.BlockBalances{}
@@ -54,6 +54,8 @@ func (s *BankService) TransferFunds(ctx context.Context, req *pb.TransferRequest
 	// transaction transfer
 	transferId, errTransfer := models.CreateTransaction(s.DB, sourceAccount.Id, sourceAccount.Balance, beneficiaryAccount.Id, beneficiaryAccount.Balance, req.Amount)
 	if errTransfer != nil {
+		// drop block balance on rollback
+		_ = createBlockBalance.DropBlockedBalance(s.DB)
 		log.Println(errTransfer)
 		return nil, status.Errorf(codes.Internal, "Transfers failed id %s", errTransfer.Error())
 	}
