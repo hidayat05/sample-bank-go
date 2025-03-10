@@ -1,8 +1,7 @@
 package models
 
 import (
-	"errors"
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 	"time"
 )
 
@@ -11,17 +10,18 @@ type Accounts struct {
 	Name          string    `gorm:"size:255;not null" json:"name"`
 	AccountNumber string    `gorm:"size:255;unique, not null" json:"account_number"`
 	Balance       float64   `gorm:"not null" json:"balance"`
-	CreatedAt     time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
-	UpdatedAt     time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+func (a *Accounts) TableName() string {
+	return "accounts"
 }
 
 func (a *Accounts) GetUserByAccountNumber(db *gorm.DB, accountNumber string) (*Accounts, error) {
 	err := db.Where("account_number = ?", accountNumber).Take(&a).Error
 	if err != nil {
 		return &Accounts{}, err
-	}
-	if gorm.IsRecordNotFoundError(err) {
-		return &Accounts{}, errors.New("user not found")
 	}
 	return a, nil
 }

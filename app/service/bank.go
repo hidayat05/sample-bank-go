@@ -2,9 +2,9 @@ package service
 
 import (
 	"context"
-	"github.com/jinzhu/gorm"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"gorm.io/gorm"
 	"log"
 	"sample-bank/app/models"
 	pb "sample-bank/proto"
@@ -20,14 +20,14 @@ func (s *BankService) TransferFunds(ctx context.Context, req *pb.TransferRequest
 	_, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	if req.FromAccountNumber == req.ToAccountNumber {
-		return nil, status.Errorf(codes.InvalidArgument, "cannot transfer same account")
-	}
-
 	srcAccount := models.Accounts{}
 	sourceAccount, errSourceAccount := srcAccount.GetUserByAccountNumber(s.DB, req.FromAccountNumber)
 	if errSourceAccount != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "source account not found")
+	}
+
+	if req.FromAccountNumber == req.ToAccountNumber {
+		return nil, status.Errorf(codes.InvalidArgument, "cannot transfer same account")
 	}
 
 	bnfAccount := models.Accounts{}
@@ -36,6 +36,7 @@ func (s *BankService) TransferFunds(ctx context.Context, req *pb.TransferRequest
 		return nil, status.Errorf(codes.InvalidArgument, "beneficiary account not found")
 	}
 
+	// concurrent bro
 	blockedBalance := models.BlockBalances{}
 	blockBalance := blockedBalance.GetBlockBalanceByAccountId(s.DB, sourceAccount.Id)
 
@@ -57,21 +58,21 @@ func (s *BankService) TransferFunds(ctx context.Context, req *pb.TransferRequest
 		// drop block balance on rollback
 		_ = createBlockBalance.DropBlockedBalance(s.DB)
 		log.Println(errTransfer)
-		return nil, status.Errorf(codes.Internal, "Transfers failed id %s", errTransfer.Error())
+		return nil, status.Errorf(codes.Internal, "Transfers failed")
 	}
 
 	// drop blocked balance
 	errorDropData := createBlockBalance.DropBlockedBalance(s.DB)
 	if errorDropData != nil {
 		log.Println(errTransfer)
-		return nil, status.Errorf(codes.Internal, "Transfers failed error drop data %s", errorDropData.Error())
+		return nil, status.Errorf(codes.Internal, "internal server error")
 	}
 
-	transfer := models.Transfers{}
+	transfer := &models.Transfers{}
 	transferData, errTf := transfer.GetTransferById(s.DB, transferId)
 	if errTf != nil {
 		log.Println(errTransfer)
-		return nil, status.Errorf(codes.Internal, "Transfers failed data, %s", errTf.Error())
+		return nil, status.Errorf(codes.Internal, "internal server error")
 	}
 
 	return &pb.TransferResponse{

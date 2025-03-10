@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 )
 
 func CreateTransaction(
@@ -23,33 +23,29 @@ func CreateTransaction(
 		return 0, err
 	}
 
-	sourceAccount := &Accounts{}
 	updateBalance := sourceAccountBalance - amount
 	if err := tx.Table("accounts").
-		Update(sourceAccount).
 		Where("id = ?", sourceAccountId).
-		Update(map[string]interface{}{"balance": updateBalance}).Error; err != nil {
+		Update("balance", updateBalance).Error; err != nil {
 		tx.Rollback()
 		return 0, err
 	}
 
-	beneficiaryAccount := &Accounts{}
 	currentBeneficiaryBalance := beneficiaryAccountBalance + amount
 	if err := tx.Table("accounts").
-		Update(beneficiaryAccount).
 		Where("id = ?", beneficiaryId).
-		Update(map[string]interface{}{"balance": currentBeneficiaryBalance}).Error; err != nil {
+		Update("balance", currentBeneficiaryBalance).Error; err != nil {
 		tx.Rollback()
 		return 0, err
 	}
 
-	transfer := &Transfers{}
-	if err := tx.Table("transfers").Create(&Transfers{
+	transfer := &Transfers{
 		SourceAccountId:      sourceAccountId,
 		BeneficiaryAccountId: beneficiaryId,
 		Amount:               amount,
 		Status:               TransferSuccess,
-	}).Take(transfer).Error; err != nil {
+	}
+	if err := tx.Table("transfers").Create(transfer).Error; err != nil {
 		tx.Rollback()
 		return 0, err
 	}

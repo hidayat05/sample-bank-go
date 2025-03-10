@@ -1,8 +1,7 @@
 package models
 
 import (
-	"errors"
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 	"time"
 )
 
@@ -19,7 +18,11 @@ type Transfers struct {
 	BeneficiaryAccountId uint32    `gorm:"not null" json:"beneficiary_account_id"`
 	Amount               float64   `gorm:"not null" json:"amount"`
 	Status               string    `gorm:"non null" json:"status"`
-	CreatedAt            time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
+	CreatedAt            time.Time `json:"created_at"`
+}
+
+func (t *Transfers) TableName() string {
+	return "transfers"
 }
 
 func (t *Transfers) CreateTransaction(db *gorm.DB) (*Transfers, error) {
@@ -34,9 +37,6 @@ func (t *Transfers) GetTransferById(db *gorm.DB, transferId uint32) (*Transfers,
 	err := db.Table("transfers").Where("id = ?", transferId).Take(&t).Error
 	if err != nil {
 		return nil, err
-	}
-	if gorm.IsRecordNotFoundError(err) {
-		return nil, errors.New("transfer data not found")
 	}
 	return t, nil
 }

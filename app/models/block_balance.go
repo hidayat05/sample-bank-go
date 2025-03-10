@@ -1,6 +1,6 @@
 package models
 
-import "github.com/jinzhu/gorm"
+import "gorm.io/gorm"
 
 type BlockBalances struct {
 	Id        uint32  `gorm:"primary_key;auto_increment" json:"id"`
@@ -8,8 +8,12 @@ type BlockBalances struct {
 	Amount    float64 `gorm:"not null" json:"amount"`
 }
 
+func (b *BlockBalances) TableName() string {
+	return "block_balances"
+}
+
 type accountBalance struct {
-	Balance float64
+	Amount float64
 }
 
 func (b *BlockBalances) CreateBlockBalance(db *gorm.DB) (*BlockBalances, error) {
@@ -26,7 +30,7 @@ func (b *BlockBalances) GetBlockBalanceByAccountId(db *gorm.DB, accountId uint32
 	if err != nil {
 		return 0
 	}
-	return balance.Balance
+	return balance.Amount
 }
 
 func (b *BlockBalances) DropBlockedBalance(db *gorm.DB) error {
