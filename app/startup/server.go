@@ -2,9 +2,10 @@ package startup
 
 import (
 	"fmt"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"google.golang.org/grpc"
+	"gorm.io/driver/mysql"
+	_ "gorm.io/driver/mysql"
+	"gorm.io/gorm"
 	"log"
 	"net"
 	"sample-bank/app/service"
@@ -27,7 +28,7 @@ func (a *App) Initialize(dbConfig *config.Config) *grpc.Server {
 		dbConfig.DB.Name,
 		dbConfig.DB.Charset)
 
-	db, err := gorm.Open(dbConfig.DB.Dialect, dbURI)
+	db, err := gorm.Open(mysql.Open(dbURI), &gorm.Config{})
 	if err != nil {
 		log.Fatal("could not connect database", err)
 	} else {

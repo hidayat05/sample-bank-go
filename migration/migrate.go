@@ -1,11 +1,15 @@
 package migration
 
 import (
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
+	"log"
 	"sample-bank/app/models"
 )
 
 func DBMigrate(db *gorm.DB) *gorm.DB {
-	db.AutoMigrate(models.Accounts{}, models.Transfers{}, models.BlockBalances{})
+	err := db.AutoMigrate(models.Accounts{}, models.Transfers{}, models.BlockBalances{})
+	if err != nil {
+		log.Fatalf("failed to migrate accounts: %v", err)
+	}
 	return db
 }
